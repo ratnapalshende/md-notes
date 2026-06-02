@@ -3,7 +3,7 @@ from markdown_it import MarkdownIt
 from mdit_py_plugins.front_matter import front_matter_plugin
 from mdit_py_plugins.tasklists import tasklists_plugin
 from mdit_py_plugins.footnote import footnote_plugin
-from .extensions import callout_plugin, wikilink_plugin, embed_plugin, tag_plugin
+from .extensions import callout_plugin, wikilink_plugin, embed_plugin, tag_plugin, inject_linenumbers_plugin
 
 def make_parser() -> MarkdownIt:
     md = (
@@ -17,6 +17,7 @@ def make_parser() -> MarkdownIt:
         .use(wikilink_plugin)
         .use(embed_plugin)
         .use(tag_plugin)
+        .use(inject_linenumbers_plugin)
     )
     return md
 
@@ -37,7 +38,7 @@ def _build_nav_tree(notes: list[str]) -> dict:
     return tree
 
 
-def _render_nav_tree(tree: dict, active_title: str, depth: int = 0) -> str:
+def _render_nav_tree(tree: dict, active_title: str, depth: int = 0, current_path: str = "") -> str:
     """Recursively render the nav tree as nested HTML with collapsible folders."""
     html_parts = []
     # Sort: folders first, then files
@@ -45,6 +46,7 @@ def _render_nav_tree(tree: dict, active_title: str, depth: int = 0) -> str:
     files = sorted([k for k, v in tree.items() if isinstance(v, str)])
 
     for folder in folders:
+        folder_path = f"{current_path}{folder}/" if current_path else f"{folder}/"
         # Check if active note is inside this folder
         is_open = _folder_contains_active(tree[folder], active_title)
         open_class = "open" if is_open else ""
@@ -53,11 +55,13 @@ def _render_nav_tree(tree: dict, active_title: str, depth: int = 0) -> str:
             f'<div class="nav-folder-title">'
             f'<i class="ti ti-chevron-right nav-folder-chevron"></i>'
             f'<i class="ti ti-folder nav-folder-icon"></i>'
-            f'<span>{folder}</span>'
+            f'<span style="flex-grow: 1;">{folder}</span>'
+            f'<button class="folder-new-file-btn" title="New File" style="background: none; border: none; cursor: pointer; color: var(--text-secondary); opacity: 0; transition: opacity 0.2s; padding: 0.2rem; display: flex; align-items: center;" onclick="event.stopPropagation(); window.createNoteInFolder(\'{folder_path}\');">'
+            f'<i class="ti ti-file-plus"></i></button>'
             f'</div>'
         )
         html_parts.append('<ul class="nav-folder-children">')
-        html_parts.append(_render_nav_tree(tree[folder], active_title, depth + 1))
+        html_parts.append(_render_nav_tree(tree[folder], active_title, depth + 1, folder_path))
         html_parts.append('</ul>')
         html_parts.append('</li>')
 
@@ -85,7 +89,7 @@ def _folder_contains_active(subtree: dict, active_title: str) -> bool:
     return False
 
 
-def wrap_in_template(body: str, title: str, nav: list[str] | None = None) -> str:
+def wrap_in_template(body: str, title: str, nav: list[str] | None = None, raw_text: str = "", note_id: str = "") -> str:
     sidebar_footer = """
         <div class="sidebar-footer" style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
             <label for="highlighter-select" style="font-size: 0.8rem; color: var(--text-secondary);">Code Highlighter:</label>
@@ -106,7 +110,10 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None) -> str
         home_active = "active" if title.lower() == "index" else ""
         sidebar_html = f"""
     <div class="sidebar">
-        <h2>Notes</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2 style="margin-bottom: 0;">Notes</h2>
+            <button id="btn-new-note" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;"><i class="ti ti-plus"></i> New</button>
+        </div>
         <ul class="nav-tree">
             <li><a href="/" class="nav-file {home_active}"><i class="ti ti-home nav-file-icon"></i>Home</a></li>
             {tree_html}
@@ -117,7 +124,10 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None) -> str
     else:
         sidebar_html = f"""
     <div class="sidebar">
-        <h2>Notes</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2 style="margin-bottom: 0;">Notes</h2>
+            <button id="btn-new-note" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;"><i class="ti ti-plus"></i> New</button>
+        </div>
         <ul class="nav-tree">
             <li><a href="/" class="nav-file active"><i class="ti ti-home nav-file-icon"></i>Home</a></li>
         </ul>
@@ -138,6 +148,13 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None) -> str
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
     <!-- Tabler Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    
+    <!-- CodeMirror -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-ocean.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/continuelist.min.js"></script>
     
     <!-- Highlighter Themes -->
     <link id="theme-highlightjs" class="highlighter-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
@@ -261,6 +278,64 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None) -> str
             color: var(--primary-color);
         }}
 
+        /* Buttons */
+        .btn {{
+            padding: 0.4rem 0.8rem;
+            border-radius: 0.375rem;
+            border: 1px solid transparent;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.2s;
+            font-family: var(--font-sans);
+        }}
+        .btn-primary {{ background: var(--primary-color); color: white; }}
+        .btn-primary:hover {{ background: var(--primary-hover); }}
+        .btn-success {{ background: #1f883d; color: white; }}
+        .btn-success:hover {{ background: #1a7f37; }}
+        .btn-secondary {{ background: var(--bg-secondary); border-color: var(--border-color); color: var(--text-primary); }}
+        .btn-secondary:hover {{ border-color: #8b949e; }}
+
+        /* CodeMirror overrides */
+        .CodeMirror {{
+            height: 100% !important;
+            font-family: var(--font-mono) !important;
+            font-size: 0.95rem;
+            background: transparent !important;
+            color: var(--text-primary) !important;
+        }}
+        .cm-s-material-ocean.CodeMirror {{
+            background: #0d1117 !important;
+            color: #c9d1d9 !important;
+        }}
+        
+        .editor-pane .CodeMirror {{
+            border-radius: 0.5rem;
+        }}
+
+        /* Split View Layout */
+        .split-view {{
+            height: calc(100vh - 12rem);
+            gap: 1rem;
+            flex-direction: row;
+        }}
+        .editor-pane, .preview-pane {{
+            flex: 1;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }}
+        .preview-pane {{
+            overflow-y: auto;
+            padding: 1.5rem;
+            background: var(--bg-primary);
+        }}
+
         /* Sidebar styling */
         .sidebar {{
             width: var(--sidebar-width);
@@ -314,6 +389,13 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None) -> str
             background-color: var(--border-color);
             color: var(--text-primary);
         }}
+        
+        .nav-folder-title:hover .folder-new-file-btn {{
+            opacity: 1 !important;
+        }}
+        .folder-new-file-btn:hover {{
+            color: var(--primary-color) !important;
+        }}
 
         .nav-folder-chevron {{
             font-size: 0.75rem;
@@ -337,9 +419,9 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None) -> str
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.25s ease;
-            padding-left: 1.25rem;
+            padding-left: 1.5rem;
             border-left: 1px solid var(--border-color);
-            margin-left: 0.55rem;
+            margin-left: 0.75rem;
         }}
 
         .nav-folder.open > .nav-folder-children {{
@@ -357,6 +439,10 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None) -> str
             border-radius: 0.375rem;
             font-size: 0.9rem;
             transition: all 0.15s ease;
+        }}
+
+        .nav-tree > li > .nav-file {{
+            padding-left: 1.75rem;
         }}
 
         .nav-file:hover {{
@@ -565,6 +651,15 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None) -> str
 
         .callout-danger {{ border-left-color: #ef4444; }}
         .callout-danger .callout-title {{ color: #ef4444; }}
+        
+        .callout-question {{ border-left-color: #d97706; }}
+        .callout-question .callout-title {{ color: #d97706; }}
+
+        .callout-todo {{ border-left-color: #0ea5e9; }}
+        .callout-todo .callout-title {{ color: #0ea5e9; }}
+
+        .callout-example {{ border-left-color: #a855f7; }}
+        .callout-example .callout-title {{ color: #a855f7; }}
 
         /* Tags */
         .tag {{
@@ -634,6 +729,15 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None) -> str
             body.mobile-sidebar-open .sidebar-backdrop {{
                 display: block;
             }}
+
+            /* Mobile Split View */
+            .split-view {{
+                flex-direction: column !important;
+                height: calc(100vh - 9rem) !important;
+            }}
+            .editor-pane, .preview-pane {{
+                min-height: 40vh;
+            }}
         }}
     </style>
 </head>
@@ -647,10 +751,32 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None) -> str
     <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
     {sidebar_html}
     <div class="content-wrapper">
-        <article>
+        <div class="toolbar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-color);">
+            <div style="font-size: 0.9rem; color: var(--text-secondary); font-family: var(--font-mono);">
+                {note_id if note_id else "index"}
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                {f'''<button id="btn-edit" class="btn btn-primary" title="Edit Note"><i class="ti ti-edit"></i> Edit</button>
+                <button id="btn-save" class="btn btn-success" title="Save Note" style="display: none;"><i class="ti ti-device-floppy"></i> Save</button>
+                <button id="btn-cancel" class="btn btn-secondary" title="Cancel Editing" style="display: none;"><i class="ti ti-x"></i> Cancel</button>''' if note_id else ""}
+            </div>
+        </div>
+        
+        {f'''<div id="split-view" class="split-view" style="display: none;">
+            <div id="editor-pane" class="editor-pane">
+                <textarea id="markdown-editor"></textarea>
+            </div>
+            <div id="preview-pane" class="preview-pane">
+                <article id="live-preview"></article>
+            </div>
+        </div>''' if note_id else ""}
+
+        <article id="markdown-viewer">
             {body}
         </article>
     </div>
+    
+    <script type="text/plain" id="raw-markdown">{raw_text.replace("</script>", "<\\/script>")}</script>
     
     <!-- Sidebar Toggle Script -->
     <script>
@@ -782,101 +908,104 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None) -> str
     <!-- Highlighter Switch Script -->
     <script src="https://unpkg.com/shiki@0.14.7"></script>
     <script>
+        window.applyHighlighter = async function(type, root = document) {{
+            const preBlocks = root.querySelectorAll('pre');
+            
+            preBlocks.forEach(pre => {{
+                if (!pre.dataset.raw) {{
+                    const code = pre.querySelector('code');
+                    if (code) {{
+                        pre.dataset.raw = code.innerText;
+                        const classes = Array.from(code.classList);
+                        const langClass = classes.find(c => c.startsWith('language-'));
+                        pre.dataset.lang = langClass ? langClass.replace('language-', '') : 'text';
+                        pre.dataset.originalHtml = code.innerHTML; 
+                    }}
+                }}
+            }});
+
+            document.querySelectorAll('.highlighter-theme').forEach(link => {{
+                link.disabled = link.id !== 'theme-' + type;
+            }});
+
+            if (type === 'highlightjs' || type === 'prismjs') {{
+                preBlocks.forEach(pre => {{
+                    const code = pre.querySelector('code');
+                    if (code && pre.dataset.originalHtml) {{
+                        code.innerHTML = pre.dataset.originalHtml;
+                        code.className = 'language-' + pre.dataset.lang;
+                        pre.className = '';
+                        pre.style.backgroundColor = '';
+                        pre.style.color = '';
+                    }}
+                }});
+            }}
+
+            if (type === 'highlightjs') {{
+                if (root === document) hljs.highlightAll();
+                else preBlocks.forEach(pre => hljs.highlightElement(pre.querySelector('code')));
+            }} else if (type === 'prismjs') {{
+                preBlocks.forEach(pre => {{
+                    pre.classList.add('language-' + pre.dataset.lang);
+                }});
+                Prism.highlightAllUnder(root);
+            }} else if (type === 'shiki') {{
+                try {{
+                    const langs = Array.from(new Set(Array.from(preBlocks).map(p => p.dataset.lang)));
+                    const supported = shiki.BUNDLED_LANGUAGES.map(l => l.id).concat(shiki.BUNDLED_LANGUAGES.flatMap(l => l.aliases || []));
+                    const validLangs = langs.filter(l => l !== 'text' && supported.includes(l));
+                    
+                    const highlighter = await shiki.getHighlighter({{
+                        theme: 'dark-plus',
+                        langs: validLangs
+                    }});
+
+                    preBlocks.forEach(pre => {{
+                        const lang = pre.dataset.lang;
+                        const raw = pre.dataset.raw;
+                        if (validLangs.includes(lang)) {{
+                            try {{
+                                const html = highlighter.codeToHtml(raw, {{ lang }});
+                                const temp = document.createElement('div');
+                                temp.innerHTML = html;
+                                const shikiPre = temp.querySelector('pre');
+                                const shikiCode = temp.querySelector('code');
+                                
+                                if (shikiPre && shikiCode) {{
+                                    const code = pre.querySelector('code');
+                                    code.innerHTML = shikiCode.innerHTML;
+                                    pre.style.backgroundColor = shikiPre.style.backgroundColor;
+                                    pre.style.color = shikiPre.style.color;
+                                }}
+                            }} catch(e) {{ console.error(e); }}
+                        }} else {{
+                            pre.style.backgroundColor = '#1E1E1E'; // dark-plus bg
+                            pre.style.color = '#D4D4D4';
+                            const code = pre.querySelector('code');
+                            if (code) code.innerHTML = pre.dataset.originalHtml;
+                        }}
+                    }});
+                }} catch (err) {{
+                    console.error('Shiki error:', err);
+                    window.applyHighlighter('highlightjs', root);
+                    const select = document.getElementById('highlighter-select');
+                    if (select) select.value = 'highlightjs';
+                }}
+            }}
+        }};
+
         document.addEventListener('DOMContentLoaded', () => {{
             const select = document.getElementById('highlighter-select');
             if (!select) return;
 
-            const preBlocks = document.querySelectorAll('pre');
-            
-            preBlocks.forEach(pre => {{
-                const code = pre.querySelector('code');
-                if (code) {{
-                    pre.dataset.raw = code.innerText;
-                    const classes = Array.from(code.classList);
-                    const langClass = classes.find(c => c.startsWith('language-'));
-                    pre.dataset.lang = langClass ? langClass.replace('language-', '') : 'text';
-                    pre.dataset.originalHtml = code.innerHTML; 
-                }}
-            }});
-
-            async function applyHighlighter(type) {{
-                // Toggle CSS themes
-                document.querySelectorAll('.highlighter-theme').forEach(link => {{
-                    link.disabled = link.id !== 'theme-' + type;
-                }});
-
-                if (type === 'highlightjs' || type === 'prismjs') {{
-                    preBlocks.forEach(pre => {{
-                        const code = pre.querySelector('code');
-                        if (code && pre.dataset.originalHtml) {{
-                            code.innerHTML = pre.dataset.originalHtml;
-                            code.className = 'language-' + pre.dataset.lang;
-                            pre.className = '';
-                            pre.style.backgroundColor = '';
-                            pre.style.color = '';
-                        }}
-                    }});
-                }}
-
-                if (type === 'highlightjs') {{
-                    hljs.highlightAll();
-                }} else if (type === 'prismjs') {{
-                    preBlocks.forEach(pre => {{
-                        pre.classList.add('language-' + pre.dataset.lang);
-                    }});
-                    Prism.highlightAll();
-                }} else if (type === 'shiki') {{
-                    try {{
-                        const langs = Array.from(new Set(Array.from(preBlocks).map(p => p.dataset.lang)));
-                        const supported = shiki.BUNDLED_LANGUAGES.map(l => l.id).concat(shiki.BUNDLED_LANGUAGES.flatMap(l => l.aliases || []));
-                        const validLangs = langs.filter(l => l !== 'text' && supported.includes(l));
-                        
-                        const highlighter = await shiki.getHighlighter({{
-                            theme: 'dark-plus',
-                            langs: validLangs
-                        }});
-
-                        preBlocks.forEach(pre => {{
-                            const lang = pre.dataset.lang;
-                            const raw = pre.dataset.raw;
-                            if (validLangs.includes(lang)) {{
-                                try {{
-                                    const html = highlighter.codeToHtml(raw, {{ lang }});
-                                    const temp = document.createElement('div');
-                                    temp.innerHTML = html;
-                                    const shikiPre = temp.querySelector('pre');
-                                    const shikiCode = temp.querySelector('code');
-                                    
-                                    if (shikiPre && shikiCode) {{
-                                        const code = pre.querySelector('code');
-                                        code.innerHTML = shikiCode.innerHTML;
-                                        pre.style.backgroundColor = shikiPre.style.backgroundColor;
-                                        pre.style.color = shikiPre.style.color;
-                                    }}
-                                }} catch(e) {{ console.error(e); }}
-                            }} else {{
-                                pre.style.backgroundColor = '#1E1E1E'; // dark-plus bg
-                                pre.style.color = '#D4D4D4';
-                                const code = pre.querySelector('code');
-                                if (code) code.innerHTML = pre.dataset.originalHtml;
-                            }}
-                        }});
-                    }} catch (err) {{
-                        console.error('Shiki error:', err);
-                        applyHighlighter('highlightjs');
-                        select.value = 'highlightjs';
-                    }}
-                }}
-            }}
-
             const currentHighlighter = localStorage.getItem('md-highlighter') || 'highlightjs';
             select.value = currentHighlighter;
-            applyHighlighter(currentHighlighter);
+            window.applyHighlighter(currentHighlighter);
 
             select.addEventListener('change', (e) => {{
                 const val = e.target.value;
                 localStorage.setItem('md-highlighter', val);
-                applyHighlighter(val);
+                window.applyHighlighter(val);
             }});
         }});
     </script>
@@ -913,6 +1042,266 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None) -> str
             window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateIcon);
         }})();
     </script>
+
+    <!-- Editor Script -->
+    <script>
+        (function() {{
+            const btnEdit = document.getElementById('btn-edit');
+            const btnSave = document.getElementById('btn-save');
+            const btnCancel = document.getElementById('btn-cancel');
+            const btnNewNote = document.getElementById('btn-new-note');
+            const splitView = document.getElementById('split-view');
+            const mdViewer = document.getElementById('markdown-viewer');
+            const currentNoteId = "{note_id}";
+            
+            let cmEditor = null;
+            let isDirty = false;
+            let debounceTimer = null;
+
+            if (btnNewNote) {{
+                btnNewNote.addEventListener('click', () => {{
+                    let currentFolder = "";
+                    if (currentNoteId) {{
+                        const parts = currentNoteId.split('/');
+                        if (parts.length > 1) {{
+                            parts.pop();
+                            currentFolder = parts.join('/') + "/";
+                        }}
+                    }}
+                    window.createNoteInFolder(currentFolder);
+                }});
+            }}
+
+            window.createNoteInFolder = function(folderPath) {{
+                const filename = prompt(`Create new file in $${{folderPath ? folderPath : 'root'}}/ :`, "new_note");
+                if (filename) {{
+                    let name = filename.trim();
+                    if (!name.endsWith('.md')) name += '.md';
+                    
+                    const fullPath = folderPath + name;
+                    
+                    fetch('/api/save', {{
+                        method: 'POST',
+                        headers: {{ 'Content-Type': 'application/json' }},
+                        body: JSON.stringify({{ path: fullPath, content: "# " + name.replace('.md', '') }})
+                    }}).then(res => res.json()).then(data => {{
+                        if (data.success) {{
+                            window.location.href = "/" + fullPath.replace(".md", "");
+                        }} else {{
+                            alert("Error creating note: " + (data.error || "Unknown"));
+                        }}
+                    }});
+                }}
+            }};
+
+            if (btnEdit) {{
+                btnEdit.addEventListener('click', () => {{
+                    mdViewer.style.display = 'none';
+                    splitView.style.display = 'flex';
+                    btnEdit.style.display = 'none';
+                    btnSave.style.display = 'flex';
+                    btnCancel.style.display = 'flex';
+
+                    if (!cmEditor) {{
+                        const rawText = document.getElementById('raw-markdown').textContent;
+                        cmEditor = CodeMirror.fromTextArea(document.getElementById('markdown-editor'), {{
+                            mode: 'markdown',
+                            theme: document.documentElement.getAttribute('data-theme') === 'dark' || 
+                                  (!document.documentElement.getAttribute('data-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)
+                                  ? 'material-ocean' : 'default',
+                            lineNumbers: true,
+                            lineWrapping: true,
+                            extraKeys: {{"Enter": "newlineAndIndentContinueMarkdownList"}}
+                        }});
+                        cmEditor.setValue(rawText);
+                        
+                        cmEditor.on('change', () => {{
+                            isDirty = true;
+                            clearTimeout(debounceTimer);
+                            debounceTimer = setTimeout(() => {{
+                                updatePreview(cmEditor.getValue());
+                            }}, 300);
+                        }});
+
+                        // Interpolated Source Map Scroll Sync
+                        let isSyncingLeft = false;
+                        let isSyncingRight = false;
+                        
+                        cmEditor.on('scroll', () => {{
+                            if (!isSyncingLeft) {{
+                                isSyncingRight = true;
+                                
+                                const scrollInfo = cmEditor.getScrollInfo();
+                                const previewPane = document.getElementById('preview-pane');
+                                if (previewPane) {{
+                                    if (scrollInfo.top <= 10) {{
+                                        previewPane.scrollTop = 0;
+                                    }} else if (scrollInfo.top >= scrollInfo.height - scrollInfo.clientHeight - 10) {{
+                                        previewPane.scrollTop = previewPane.scrollHeight - previewPane.clientHeight;
+                                    }} else {{
+                                        const elements = Array.from(previewPane.querySelectorAll('[data-line]'));
+                                        const containerRect = previewPane.getBoundingClientRect();
+                                        
+                                        let prevY = 0;
+                                        let prevYPrime = 0;
+                                        let nextY = scrollInfo.height;
+                                        let nextYPrime = previewPane.scrollHeight;
+                                        
+                                        for (let i = 0; i < elements.length; i++) {{
+                                            const line = parseInt(elements[i].getAttribute('data-line'));
+                                            const y = cmEditor.heightAtLine(line, 'local');
+                                            const elementRect = elements[i].getBoundingClientRect();
+                                            const yPrime = previewPane.scrollTop + elementRect.top - containerRect.top;
+                                            
+                                            if (y <= scrollInfo.top) {{
+                                                prevY = y;
+                                                prevYPrime = yPrime;
+                                            }} else {{
+                                                nextY = y;
+                                                nextYPrime = yPrime;
+                                                break;
+                                            }}
+                                        }}
+
+                                        let percentage = 0;
+                                        if (nextY > prevY) {{
+                                            percentage = (scrollInfo.top - prevY) / (nextY - prevY);
+                                        }}
+                                        previewPane.scrollTop = prevYPrime + percentage * (nextYPrime - prevYPrime);
+                                    }}
+                                }}
+                                window.requestAnimationFrame(() => {{ isSyncingRight = false; }});
+                            }}
+                        }});
+
+                        const previewPane = document.getElementById('preview-pane');
+                        if (previewPane) {{
+                            previewPane.addEventListener('scroll', () => {{
+                                if (!isSyncingRight) {{
+                                    isSyncingLeft = true;
+                                    
+                                    const scrollInfo = cmEditor.getScrollInfo();
+                                    const scrollTop = previewPane.scrollTop;
+                                    
+                                    if (scrollTop <= 10) {{
+                                        cmEditor.scrollTo(null, 0);
+                                    }} else if (scrollTop >= previewPane.scrollHeight - previewPane.clientHeight - 10) {{
+                                        cmEditor.scrollTo(null, scrollInfo.height - scrollInfo.clientHeight);
+                                    }} else {{
+                                        const elements = Array.from(previewPane.querySelectorAll('[data-line]'));
+                                        const containerRect = previewPane.getBoundingClientRect();
+                                        
+                                        let prevYPrime = 0;
+                                        let prevY = 0;
+                                        let nextYPrime = previewPane.scrollHeight;
+                                        let nextY = scrollInfo.height;
+
+                                        for (let i = 0; i < elements.length; i++) {{
+                                            const line = parseInt(elements[i].getAttribute('data-line'));
+                                            const elementRect = elements[i].getBoundingClientRect();
+                                            const yPrime = previewPane.scrollTop + elementRect.top - containerRect.top;
+                                            const y = cmEditor.heightAtLine(line, 'local');
+                                            
+                                            if (yPrime <= scrollTop) {{
+                                                prevYPrime = yPrime;
+                                                prevY = y;
+                                            }} else {{
+                                                nextYPrime = yPrime;
+                                                nextY = y;
+                                                break;
+                                            }}
+                                        }}
+
+                                        let percentage = 0;
+                                        if (nextYPrime > prevYPrime) {{
+                                            percentage = (scrollTop - prevYPrime) / (nextYPrime - prevYPrime);
+                                        }}
+                                        cmEditor.scrollTo(null, prevY + percentage * (nextY - prevY));
+                                    }}
+                                    window.requestAnimationFrame(() => {{ isSyncingLeft = false; }});
+                                }}
+                            }});
+                        }}
+                        
+                        updatePreview(cmEditor.getValue());
+                    }}
+                }});
+            }}
+
+            if (btnCancel) {{
+                btnCancel.addEventListener('click', () => {{
+                    if (isDirty && !confirm("You have unsaved changes. Are you sure you want to cancel?")) return;
+                    mdViewer.style.display = 'block';
+                    splitView.style.display = 'none';
+                    btnEdit.style.display = 'flex';
+                    btnSave.style.display = 'none';
+                    btnCancel.style.display = 'none';
+                    isDirty = false;
+                    if (cmEditor) cmEditor.setValue(document.getElementById('raw-markdown').textContent);
+                }});
+            }}
+
+            if (btnSave) {{
+                btnSave.addEventListener('click', async () => {{
+                    if (!cmEditor) return;
+                    const content = cmEditor.getValue();
+                    const res = await fetch('/api/save', {{
+                        method: 'POST',
+                        headers: {{ 'Content-Type': 'application/json' }},
+                        body: JSON.stringify({{ path: currentNoteId + ".md", content: content }})
+                    }});
+                    const data = await res.json();
+                    if (data.success) {{
+                        isDirty = false;
+                        window.location.reload();
+                    }} else {{
+                        alert("Error saving file: " + (data.error || "Unknown"));
+                    }}
+                }});
+            }}
+
+            async function updatePreview(text) {{
+                const res = await fetch('/api/render', {{
+                    method: 'POST',
+                    headers: {{ 'Content-Type': 'application/json' }},
+                    body: JSON.stringify({{ content: text }})
+                }});
+                if (res.ok) {{
+                    const data = await res.json();
+                    const preview = document.getElementById('live-preview');
+                    preview.innerHTML = data.html;
+                    if (typeof window.applyHighlighter === 'function') {{
+                        window.applyHighlighter(localStorage.getItem('md-highlighter') || 'highlightjs', preview);
+                    }}
+                }}
+            }}
+
+            window.addEventListener('beforeunload', (e) => {{
+                if (isDirty) {{
+                    e.preventDefault();
+                    e.returnValue = '';
+                }}
+            }});
+            
+            // Listen to theme changes to update CodeMirror theme
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {{
+                if (cmEditor) {{
+                    const isDark = document.documentElement.getAttribute('data-theme') === 'dark' || 
+                                  (!document.documentElement.getAttribute('data-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                    cmEditor.setOption('theme', isDark ? 'material-ocean' : 'default');
+                }}
+            }});
+            
+            document.getElementById('theme-toggle')?.addEventListener('click', () => {{
+                if (cmEditor) {{
+                    setTimeout(() => {{
+                        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                        cmEditor.setOption('theme', isDark ? 'material-ocean' : 'default');
+                    }}, 10);
+                }}
+            }});
+        }})();
+    </script>
 </body>
 </html>
 """
@@ -920,7 +1309,7 @@ def render_file(path: str, all_notes: list[str] | None = None, note_id: str | No
     text = Path(path).read_text(encoding="utf-8")
     body = _parser.render(text)
     title = note_id if note_id else Path(path).stem
-    return wrap_in_template(body, title=title, nav=all_notes)
+    return wrap_in_template(body, title=title, nav=all_notes, raw_text=text, note_id=note_id or "")
 
 def render_index(all_notes: list[str]) -> str:
     links = "".join(f'<li><a href="/{note.replace(" ", "-").lower()}">{note}</a></li>' for note in all_notes)

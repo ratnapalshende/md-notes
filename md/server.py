@@ -62,6 +62,12 @@ async def run_server(path: str, port: int):
         if slug == "ws":
             return await ws_handler(request)
 
+        if slug == "api/render" and request.method == "POST":
+            return await api_render(request)
+
+        if slug == "api/save" and request.method == "POST":
+            return await api_save(request)
+
         all_notes = get_all_notes()
 
         # Root path: show the target file if single-file mode, or index if directory
@@ -95,8 +101,46 @@ async def run_server(path: str, port: int):
     # Watcher
     start_watcher(path, reload_callback)
 
+    # API endpoints
+    async def api_render(request):
+        try:
+            data = await request.json()
+            text = data.get("content", "")
+            from .renderer import _parser
+            html = _parser.render(text)
+            return web.json_response({"html": html})
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=500)
+
+    async def api_save(request):
+        try:
+            data = await request.json()
+            note_path = data.get("path")
+            content = data.get("content")
+            
+            if not note_path or content is None:
+                return web.json_response({"error": "Missing path or content"}, status=400)
+            
+            target_file = Path(note_path)
+            if not target_file.is_absolute():
+                target_file = search_dir / target_file
+                
+            try:
+                target_file.resolve().relative_to(search_dir.resolve())
+            except ValueError:
+                return web.json_response({"error": "Access denied. Cannot write outside of workspace."}, status=403)
+                
+            target_file.parent.mkdir(parents=True, exist_ok=True)
+            target_file.write_text(content, encoding="utf-8")
+            
+            return web.json_response({"success": True})
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=500)
+
     # Routes
     app.router.add_get("/ws", ws_handler)
+    app.router.add_post("/api/render", api_render)
+    app.router.add_post("/api/save", api_save)
     app.router.add_get("/{slug:.*}", handle_request)
 
     # Runner setup

@@ -15,6 +15,9 @@ CALLOUT_ICONS = {
     "important": "ti-star",
     "caution": "ti-flame",
     "danger": "ti-skull",
+    "question": "ti-help",
+    "todo": "ti-check",
+    "example": "ti-list-details",
     # user-defined types fall back to ti-bookmark
 }
 
@@ -57,8 +60,13 @@ def callout_plugin(md: MarkdownIt) -> None:
             env["callout_stack"] = []
         env["callout_stack"].append(True)
 
+        line_attr = ""
+        attrs = dict(tokens[idx].attrs) if tokens[idx].attrs else {}
+        if "data-line" in attrs:
+            line_attr = f' data-line="{{attrs["data-line"]}}"'
+
         return (
-            f'<div class="callout callout-{ctype}" data-callout="{ctype}">'
+            f'<div class="callout callout-{ctype}" data-callout="{ctype}"{line_attr}>'
             f'<div class="callout-title"><i class="ti {icon}"></i> {title}</div>'
             f'<div class="callout-body">'
         )
@@ -180,3 +188,12 @@ def tag_plugin(md: MarkdownIt) -> None:
 
     md.inline.ruler.push("tag", tokenize)
     md.add_render_rule("tag", render_tag)
+
+def inject_linenumbers_plugin(md: MarkdownIt) -> None:
+    """Injects data-line attributes to root-level elements for scroll syncing."""
+    def add_line_numbers(state):
+        for token in state.tokens:
+            if token.map and token.type not in ("inline", "text"):
+                token.attrSet("data-line", str(token.map[0]))
+    
+    md.core.ruler.push("inject_linenumbers", add_line_numbers)
