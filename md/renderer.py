@@ -126,6 +126,10 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None) -> str
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
     <!-- Tabler Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    <!-- Highlight.js for code highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/obsidian.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
     <!-- Prevent sidebar flash: apply collapsed state before paint -->
     <script>
         (function() {{
@@ -354,14 +358,31 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None) -> str
         article a {{ color: var(--primary-color); text-decoration: none; }}
         article a:hover {{ text-decoration: underline; }}
 
+        /* Lists */
+        article ul, article ol {{
+            padding-left: 2rem;
+            margin-bottom: 1.25rem;
+        }}
+        article li {{
+            margin-bottom: 0.5rem;
+        }}
+        article li > ul, article li > ol {{
+            margin-bottom: 0;
+            margin-top: 0.5rem;
+        }}
+
         /* Code highlight and blocks */
         pre {{
-            background-color: var(--bg-secondary);
             border: 1px solid var(--border-color);
-            padding: 1.25rem;
             border-radius: 0.5rem;
-            overflow-x: auto;
             margin-bottom: 1.5rem;
+            overflow: hidden;
+            position: relative;
+        }}
+        pre code {{
+            padding: 1.25rem !important;
+            overflow-x: auto;
+            display: block;
         }}
         code {{
             font-family: var(--font-mono);
@@ -372,6 +393,34 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None) -> str
             padding: 0.2rem 0.4rem;
             border-radius: 0.25rem;
             border: 1px solid var(--border-color);
+        }}
+
+        /* Copy Button */
+        .copy-btn {{
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: rgba(40, 43, 46, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #e0e2e4;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: opacity 0.2s, background 0.2s;
+            z-index: 10;
+        }}
+        pre:hover .copy-btn {{
+            opacity: 1;
+        }}
+        .copy-btn:hover {{
+            background: rgba(255, 255, 255, 0.15);
+        }}
+        .copy-btn.copied {{
+            background: #10b981;
+            border-color: #10b981;
+            color: #fff;
         }}
 
         /* Tables */
@@ -610,6 +659,34 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None) -> str
                 }}, 2000);
             }};
         }})();
+    </script>
+
+    <!-- Copy button script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {{
+            document.querySelectorAll('pre').forEach(pre => {{
+                const btn = document.createElement('button');
+                btn.className = 'copy-btn';
+                btn.innerHTML = '<i class="ti ti-copy"></i> Copy';
+                
+                btn.addEventListener('click', () => {{
+                    const code = pre.querySelector('code');
+                    if (code) {{
+                        navigator.clipboard.writeText(code.innerText).then(() => {{
+                            const originalHTML = btn.innerHTML;
+                            btn.innerHTML = '<i class="ti ti-check"></i> Copied!';
+                            btn.classList.add('copied');
+                            setTimeout(() => {{
+                                btn.innerHTML = originalHTML;
+                                btn.classList.remove('copied');
+                            }}, 2000);
+                        }});
+                    }}
+                }});
+                
+                pre.appendChild(btn);
+            }});
+        }});
     </script>
 </body>
 </html>
