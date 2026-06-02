@@ -1,0 +1,18 @@
+[project]
+name = "mdnotes"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "aiohttp>=3.9",          # async HTTP + WebSocket server
+    "markdown-it-py>=3.0",   # core Markdown parser
+    "mdit-py-plugins>=0.4",  # GFM tables, tasklists, footnotes
+    "watchdog>=4.0",         # file system watcher
+    "pyyaml>=6.0",           # callout config
+    "click>=8.1",            # CLI argument parsing
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio", "ruff", "mypy"]
+
+[project.scripts]
+md = "md.__main__:main"

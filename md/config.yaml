@@ -1,0 +1,10 @@
+# ~/.config/md/config.yaml  (optional)
+port: 7070
+theme: dark          # dark | light | system
+callouts:
+  idea:
+    color: purple
+    icon: ti-bulb
+  recipe:
+    color: coral
+    icon: ti-chef-hat
