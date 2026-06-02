@@ -86,6 +86,16 @@ def _folder_contains_active(subtree: dict, active_title: str) -> bool:
 
 
 def wrap_in_template(body: str, title: str, nav: list[str] | None = None) -> str:
+    sidebar_footer = """
+        <div class="sidebar-footer" style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+            <label for="highlighter-select" style="font-size: 0.8rem; color: var(--text-secondary);">Code Highlighter:</label>
+            <select id="highlighter-select" style="width: 100%; padding: 0.3rem; margin-top: 0.3rem; background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 0.25rem;">
+                <option value="highlightjs">Highlight.js (VS Code Dark)</option>
+                <option value="prismjs">PrismJS (Okaidia)</option>
+                <option value="shiki">Shiki (VS Code Dark+)</option>
+            </select>
+        </div>
+    """
     sidebar_html = ""
     body_class = "no-sidebar"
     
@@ -101,18 +111,20 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None) -> str
             <li><a href="/" class="nav-file {home_active}"><i class="ti ti-home nav-file-icon"></i>Home</a></li>
             {tree_html}
         </ul>
+        {sidebar_footer}
     </div>
     """
     else:
-        sidebar_html = """
+        sidebar_html = f"""
     <div class="sidebar">
         <h2>Notes</h2>
         <ul class="nav-tree">
             <li><a href="/" class="nav-file active"><i class="ti ti-home nav-file-icon"></i>Home</a></li>
         </ul>
+        {sidebar_footer}
     </div>
     """
-        body_class = ""
+    body_class = ""
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -126,41 +138,60 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None) -> str
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
     <!-- Tabler Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-    <!-- Highlight.js for code highlighting -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/obsidian.min.css">
+    
+    <!-- Highlighter Themes -->
+    <link id="theme-highlightjs" class="highlighter-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
+    <link id="theme-prismjs" class="highlighter-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-okaidia.min.css" disabled>
+
+    <!-- Highlighter Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script>hljs.highlightAll();</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" data-manual></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
     <!-- Prevent sidebar flash: apply collapsed state before paint -->
     <script>
         (function() {{
             if (window.innerWidth > 768 && localStorage.getItem('sidebar-collapsed') === 'true') {{
                 document.documentElement.classList.add('sidebar-collapsed');
             }}
+            const savedTheme = localStorage.getItem('md-theme');
+            if (savedTheme) {{
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            }}
         }})();
     </script>
     <style>
         :root {{
             --bg-primary: #ffffff;
-            --bg-secondary: #f8f9fa;
-            --text-primary: #1a1a1a;
-            --text-secondary: #64748b;
-            --border-color: #e2e8f0;
-            --primary-color: #3b82f6;
-            --primary-hover: #2563eb;
-            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            --font-mono: 'Fira Code', monospace;
+            --bg-secondary: #f6f8fa;
+            --text-primary: #24292f;
+            --text-secondary: #57606a;
+            --border-color: #d0d7de;
+            --primary-color: #0969da;
+            --primary-hover: #0349b4;
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+            --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
             --sidebar-width: 260px;
         }}
 
+        :root[data-theme="dark"] {{
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --border-color: #30363d;
+            --primary-color: #58a6ff;
+            --primary-hover: #79c0ff;
+        }}
+
         @media (prefers-color-scheme: dark) {{
-            :root {{
-                --bg-primary: #0f172a;
-                --bg-secondary: #1e293b;
-                --text-primary: #f8fafc;
-                --text-secondary: #94a3b8;
-                --border-color: #334155;
-                --primary-color: #60a5fa;
-                --primary-hover: #3b82f6;
+            :root:not([data-theme="light"]) {{
+                --bg-primary: #0d1117;
+                --bg-secondary: #161b22;
+                --text-primary: #c9d1d9;
+                --text-secondary: #8b949e;
+                --border-color: #30363d;
+                --primary-color: #58a6ff;
+                --primary-hover: #79c0ff;
             }}
         }}
 
@@ -201,6 +232,31 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None) -> str
         }}
 
         .sidebar-toggle:hover {{
+            background-color: var(--border-color);
+            color: var(--primary-color);
+        }}
+
+        /* Theme Toggle Button */
+        .theme-toggle {{
+            position: fixed;
+            top: 1.25rem;
+            right: 1.25rem;
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1100;
+            transition: all 0.3s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }}
+
+        .theme-toggle:hover {{
             background-color: var(--border-color);
             color: var(--primary-color);
         }}
@@ -352,11 +408,42 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None) -> str
         }}
 
         article h1 {{ font-size: 2.25rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }}
-        article h2 {{ font-size: 1.75rem; margin-top: 2rem; margin-bottom: 1rem; }}
+        article h2 {{ font-size: 1.75rem; margin-top: 2rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.3em; }}
         article h3 {{ font-size: 1.4rem; margin-top: 1.5rem; margin-bottom: 0.75rem; }}
         article p {{ margin-bottom: 1.25rem; }}
         article a {{ color: var(--primary-color); text-decoration: none; }}
         article a:hover {{ text-decoration: underline; }}
+        
+        article hr {{
+            height: 0.25em;
+            padding: 0;
+            margin: 24px 0;
+            background-color: var(--border-color);
+            border: 0;
+        }}
+
+        article blockquote {{
+            padding: 0 1em;
+            color: var(--text-secondary);
+            border-left: 0.25em solid var(--border-color);
+            margin: 0 0 1rem 0;
+        }}
+
+        article table {{
+            border-spacing: 0;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+            width: 100%;
+        }}
+
+        article table th, article table td {{
+            padding: 6px 13px;
+            border: 1px solid var(--border-color);
+        }}
+
+        article table tr:nth-child(2n) {{
+            background-color: var(--bg-secondary);
+        }}
 
         /* Lists */
         article ul, article ol {{
@@ -551,6 +638,9 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None) -> str
     </style>
 </head>
 <body class="{body_class}">
+    <button id="theme-toggle" class="theme-toggle" title="Toggle Theme">
+        <i class="ti ti-moon"></i>
+    </button>
     <button id="sidebar-toggle" class="sidebar-toggle" title="Toggle Sidebar">
         <i class="ti ti-menu-2"></i>
     </button>
@@ -688,10 +778,144 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None) -> str
             }});
         }});
     </script>
+
+    <!-- Highlighter Switch Script -->
+    <script src="https://unpkg.com/shiki@0.14.7"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {{
+            const select = document.getElementById('highlighter-select');
+            if (!select) return;
+
+            const preBlocks = document.querySelectorAll('pre');
+            
+            preBlocks.forEach(pre => {{
+                const code = pre.querySelector('code');
+                if (code) {{
+                    pre.dataset.raw = code.innerText;
+                    const classes = Array.from(code.classList);
+                    const langClass = classes.find(c => c.startsWith('language-'));
+                    pre.dataset.lang = langClass ? langClass.replace('language-', '') : 'text';
+                    pre.dataset.originalHtml = code.innerHTML; 
+                }}
+            }});
+
+            async function applyHighlighter(type) {{
+                // Toggle CSS themes
+                document.querySelectorAll('.highlighter-theme').forEach(link => {{
+                    link.disabled = link.id !== 'theme-' + type;
+                }});
+
+                if (type === 'highlightjs' || type === 'prismjs') {{
+                    preBlocks.forEach(pre => {{
+                        const code = pre.querySelector('code');
+                        if (code && pre.dataset.originalHtml) {{
+                            code.innerHTML = pre.dataset.originalHtml;
+                            code.className = 'language-' + pre.dataset.lang;
+                            pre.className = '';
+                            pre.style.backgroundColor = '';
+                            pre.style.color = '';
+                        }}
+                    }});
+                }}
+
+                if (type === 'highlightjs') {{
+                    hljs.highlightAll();
+                }} else if (type === 'prismjs') {{
+                    preBlocks.forEach(pre => {{
+                        pre.classList.add('language-' + pre.dataset.lang);
+                    }});
+                    Prism.highlightAll();
+                }} else if (type === 'shiki') {{
+                    try {{
+                        const langs = Array.from(new Set(Array.from(preBlocks).map(p => p.dataset.lang)));
+                        const supported = shiki.BUNDLED_LANGUAGES.map(l => l.id).concat(shiki.BUNDLED_LANGUAGES.flatMap(l => l.aliases || []));
+                        const validLangs = langs.filter(l => l !== 'text' && supported.includes(l));
+                        
+                        const highlighter = await shiki.getHighlighter({{
+                            theme: 'dark-plus',
+                            langs: validLangs
+                        }});
+
+                        preBlocks.forEach(pre => {{
+                            const lang = pre.dataset.lang;
+                            const raw = pre.dataset.raw;
+                            if (validLangs.includes(lang)) {{
+                                try {{
+                                    const html = highlighter.codeToHtml(raw, {{ lang }});
+                                    const temp = document.createElement('div');
+                                    temp.innerHTML = html;
+                                    const shikiPre = temp.querySelector('pre');
+                                    const shikiCode = temp.querySelector('code');
+                                    
+                                    if (shikiPre && shikiCode) {{
+                                        const code = pre.querySelector('code');
+                                        code.innerHTML = shikiCode.innerHTML;
+                                        pre.style.backgroundColor = shikiPre.style.backgroundColor;
+                                        pre.style.color = shikiPre.style.color;
+                                    }}
+                                }} catch(e) {{ console.error(e); }}
+                            }} else {{
+                                pre.style.backgroundColor = '#1E1E1E'; // dark-plus bg
+                                pre.style.color = '#D4D4D4';
+                                const code = pre.querySelector('code');
+                                if (code) code.innerHTML = pre.dataset.originalHtml;
+                            }}
+                        }});
+                    }} catch (err) {{
+                        console.error('Shiki error:', err);
+                        applyHighlighter('highlightjs');
+                        select.value = 'highlightjs';
+                    }}
+                }}
+            }}
+
+            const currentHighlighter = localStorage.getItem('md-highlighter') || 'highlightjs';
+            select.value = currentHighlighter;
+            applyHighlighter(currentHighlighter);
+
+            select.addEventListener('change', (e) => {{
+                const val = e.target.value;
+                localStorage.setItem('md-highlighter', val);
+                applyHighlighter(val);
+            }});
+        }});
+    </script>
+    
+    <!-- Theme Toggle Script -->
+    <script>
+        (function() {{
+            const themeToggle = document.getElementById('theme-toggle');
+            const root = document.documentElement;
+            
+            function isDark() {{
+                const theme = root.getAttribute('data-theme');
+                if (theme === 'dark') return true;
+                if (theme === 'light') return false;
+                return window.matchMedia('(prefers-color-scheme: dark)').matches;
+            }}
+
+            function updateIcon() {{
+                const icon = themeToggle.querySelector('i');
+                if (icon) {{
+                    icon.className = isDark() ? 'ti ti-sun' : 'ti ti-moon';
+                }}
+            }}
+
+            updateIcon();
+
+            themeToggle.addEventListener('click', () => {{
+                const newTheme = isDark() ? 'light' : 'dark';
+                root.setAttribute('data-theme', newTheme);
+                localStorage.setItem('md-theme', newTheme);
+                updateIcon();
+            }});
+            
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateIcon);
+        }})();
+    </script>
 </body>
 </html>
 """
-
 def render_file(path: str, all_notes: list[str] | None = None, note_id: str | None = None) -> str:
     text = Path(path).read_text(encoding="utf-8")
     body = _parser.render(text)
