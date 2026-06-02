@@ -23,6 +23,7 @@ sudo apt update
 sudo apt install pipx
 pipx ensurepath
 ```
+> Note: Restart terminal after running `pipx ensurepath`
 
 Then install `mdnotes`:
 
