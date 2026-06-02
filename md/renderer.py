@@ -52,11 +52,11 @@ def _render_nav_tree(tree: dict, active_title: str, depth: int = 0, current_path
         open_class = "open" if is_open else ""
         html_parts.append(f'<li class="nav-folder {open_class}">')
         html_parts.append(
-            f'<div class="nav-folder-title">'
+            f'<div class="nav-folder-title" title="{folder}">'
             f'<i class="ti ti-chevron-right nav-folder-chevron"></i>'
             f'<i class="ti ti-folder nav-folder-icon"></i>'
-            f'<span style="flex-grow: 1;">{folder}</span>'
-            f'<button class="folder-new-file-btn" title="New File" style="background: none; border: none; cursor: pointer; color: var(--text-secondary); opacity: 0; transition: opacity 0.2s; padding: 0.2rem; display: flex; align-items: center;" onclick="event.stopPropagation(); window.createNoteInFolder(\'{folder_path}\');">'
+            f'<span class="nav-text">{folder}</span>'
+            f'<button class="folder-new-file-btn" title="New File" style="background: none; border: none; cursor: pointer; color: var(--text-secondary); opacity: 0; transition: opacity 0.2s; padding: 0.2rem; display: flex; align-items: center; flex-shrink: 0;" onclick="event.stopPropagation(); window.createNoteInFolder(\'{folder_path}\');">'
             f'<i class="ti ti-file-plus"></i></button>'
             f'</div>'
         )
@@ -65,15 +65,18 @@ def _render_nav_tree(tree: dict, active_title: str, depth: int = 0, current_path
         html_parts.append('</ul>')
         html_parts.append('</li>')
 
+    if depth == 0 and folders and files:
+        html_parts.append('<li style="height: 0.5rem;"></li>')
+
     for file_name in files:
         full_path = tree[file_name]
         slug = full_path.replace(" ", "-").lower()
         is_active = "active" if full_path.lower() == active_title.lower() else ""
         display = file_name.replace("-", " ").replace("_", " ")
         html_parts.append(
-            f'<li><a href="/{slug}" class="nav-file {is_active}">'
+            f'<li><a href="/{slug}" class="nav-file {is_active}" title="{display}">'
             f'<i class="ti ti-file-text nav-file-icon"></i>'
-            f'{display}</a></li>'
+            f'<span class="nav-text">{display}</span></a></li>'
         )
 
     return "\n".join(html_parts)
@@ -115,7 +118,7 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None, raw_te
             <button id="btn-new-note" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;"><i class="ti ti-plus"></i> New</button>
         </div>
         <ul class="nav-tree">
-            <li><a href="/" class="nav-file {home_active}"><i class="ti ti-home nav-file-icon"></i>Home</a></li>
+            <li><a href="/" class="nav-file {home_active}" title="Home"><i class="ti ti-home nav-file-icon"></i><span class="nav-text">Home</span></a></li>
             {tree_html}
         </ul>
         {sidebar_footer}
@@ -129,7 +132,7 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None, raw_te
             <button id="btn-new-note" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;"><i class="ti ti-plus"></i> New</button>
         </div>
         <ul class="nav-tree">
-            <li><a href="/" class="nav-file active"><i class="ti ti-home nav-file-icon"></i>Home</a></li>
+            <li><a href="/" class="nav-file active" title="Home"><i class="ti ti-home nav-file-icon"></i><span class="nav-text">Home</span></a></li>
         </ul>
         {sidebar_footer}
     </div>
@@ -419,13 +422,44 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None, raw_te
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.25s ease;
-            padding-left: 1.5rem;
-            border-left: 1px solid var(--border-color);
-            margin-left: 0.75rem;
+            margin-left: 1rem;
+            padding-left: 0;
+            list-style: none;
         }}
 
         .nav-folder.open > .nav-folder-children {{
             max-height: 2000px;
+        }}
+
+        /* Tree branches */
+        .nav-folder-children > li {{
+            position: relative;
+            padding-left: 1.1rem;
+        }}
+
+        .nav-folder-children > li::before {{
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            width: 1px;
+            background-color: var(--border-color);
+        }}
+
+        .nav-folder-children > li:last-child::before {{
+            bottom: auto;
+            height: 1.05rem;
+        }}
+
+        .nav-folder-children > li::after {{
+            content: '';
+            position: absolute;
+            top: 1.05rem;
+            left: 0;
+            width: 0.75rem;
+            height: 1px;
+            background-color: var(--border-color);
         }}
 
         /* File links */
@@ -439,6 +473,14 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None, raw_te
             border-radius: 0.375rem;
             font-size: 0.9rem;
             transition: all 0.15s ease;
+        }}
+
+        .nav-text {{
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 0;
+            flex-grow: 1;
         }}
 
         .nav-tree > li > .nav-file {{
