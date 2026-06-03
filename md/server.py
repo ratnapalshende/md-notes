@@ -71,7 +71,7 @@ async def run_server(path: str, port: int):
         all_notes = get_all_notes()
 
         # Root path: show the target file if single-file mode, or index if directory
-        if slug == "":
+        if slug == "" or (slug in ("index", "index.html") and resolve_path(slug) is None):
             if base_path.is_file():
                 note_id = str(base_path.relative_to(search_dir).with_suffix(""))
                 try:

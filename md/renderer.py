@@ -483,6 +483,97 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None, raw_te
             flex-grow: 1;
         }}
 
+        /* Floating Toolbar */
+        .floating-toolbar {{
+            position: absolute;
+            display: none;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 0.25rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            gap: 0.25rem;
+            align-items: center;
+        }}
+        .floating-toolbar button {{
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            padding: 0.4rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, color 0.2s;
+        }}
+        .floating-toolbar button:hover {{
+            background: color-mix(in srgb, var(--primary-color) 15%, transparent);
+            color: var(--primary-color);
+        }}
+
+        /* Context Menu */
+        .context-menu {{
+            position: absolute;
+            display: none;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            flex-direction: column;
+            min-width: 200px;
+        }}
+        .context-menu .menu-item {{
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            cursor: pointer;
+            border-radius: 0.25rem;
+            color: var(--text-primary);
+            transition: background 0.2s;
+            font-size: 0.9rem;
+        }}
+        .context-menu .menu-item:hover {{
+            background: color-mix(in srgb, var(--primary-color) 15%, transparent);
+            color: var(--primary-color);
+        }}
+        
+        .context-menu .submenu {{
+            display: none;
+            position: absolute;
+            top: -0.5rem;
+            left: 100%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            flex-direction: column;
+            min-width: 180px;
+            margin-left: 0.25rem;
+            z-index: 1001;
+            max-height: 80vh;
+            overflow-y: auto;
+        }}
+        .context-menu .submenu-up .submenu {{
+            top: auto;
+            bottom: -0.5rem;
+        }}
+        .context-menu.menu-left .submenu {{
+            left: auto;
+            right: 100%;
+            margin-left: 0;
+            margin-right: 0.25rem;
+        }}
+        .context-menu .has-submenu:hover > .submenu {{
+            display: flex;
+        }}
+
         .nav-tree > li > .nav-file {{
             padding-left: 1.75rem;
         }}
@@ -584,6 +675,17 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None, raw_te
         article li > ul, article li > ol {{
             margin-bottom: 0;
             margin-top: 0.5rem;
+        }}
+
+        /* Task Lists */
+        article li.task-list-item {{
+            list-style-type: none;
+        }}
+        article li.task-list-item input[type="checkbox"] {{
+            margin: 0 0.5rem 0 -1.5rem;
+            vertical-align: middle;
+            transform: translateY(-0.075em) scale(1.15);
+            accent-color: var(--primary-color);
         }}
 
         /* Code highlight and blocks */
@@ -791,6 +893,33 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None, raw_te
         <i class="ti ti-menu-2"></i>
     </button>
     <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+    <div id="floating-toolbar" class="floating-toolbar">
+        <button onmousedown="event.preventDefault(); window.toggleCMFormat('**')" title="Bold (Ctrl+B)"><i class="ti ti-bold"></i></button>
+        <button onmousedown="event.preventDefault(); window.toggleCMFormat('*')" title="Italic (Ctrl+I)"><i class="ti ti-italic"></i></button>
+        <button onmousedown="event.preventDefault(); window.toggleCMFormat('~~')" title="Strikethrough (Ctrl+Shift+X)"><i class="ti ti-strikethrough"></i></button>
+        <button onmousedown="event.preventDefault(); window.toggleCMFormat('`')" title="Code (Ctrl+E)"><i class="ti ti-code"></i></button>
+    </div>
+    <div id="editor-context-menu" class="context-menu">
+        <div class="menu-item has-submenu">
+            <i class="ti ti-bulb"></i> Insert Callout <i class="ti ti-chevron-right" style="margin-left: auto;"></i>
+            <div class="submenu">
+                <div class="menu-item" onmousedown="event.preventDefault(); event.stopPropagation(); window.insertTemplate('> [!note]\\n> ')"><i class="ti ti-info-circle"></i> Note</div>
+                <div class="menu-item" onmousedown="event.preventDefault(); event.stopPropagation(); window.insertTemplate('> [!warning]\\n> ')"><i class="ti ti-alert-triangle"></i> Warning</div>
+                <div class="menu-item" onmousedown="event.preventDefault(); event.stopPropagation(); window.insertTemplate('> [!tip]\\n> ')"><i class="ti ti-bulb"></i> Tip</div>
+                <div class="menu-item" onmousedown="event.preventDefault(); event.stopPropagation(); window.insertTemplate('> [!important]\\n> ')"><i class="ti ti-alert-circle"></i> Important</div>
+                <div class="menu-item" onmousedown="event.preventDefault(); event.stopPropagation(); window.insertTemplate('> [!caution]\\n> ')"><i class="ti ti-hand-stop"></i> Caution</div>
+                <div class="menu-item" onmousedown="event.preventDefault(); event.stopPropagation(); window.insertTemplate('> [!danger]\\n> ')"><i class="ti ti-flame"></i> Danger</div>
+                <div class="menu-item" onmousedown="event.preventDefault(); event.stopPropagation(); window.insertTemplate('> [!question]\\n> ')"><i class="ti ti-help"></i> Question</div>
+                <div class="menu-item" onmousedown="event.preventDefault(); event.stopPropagation(); window.insertTemplate('> [!todo]\\n> ')"><i class="ti ti-checkbox"></i> Todo</div>
+                <div class="menu-item" onmousedown="event.preventDefault(); event.stopPropagation(); window.insertTemplate('> [!example]\\n> ')"><i class="ti ti-list"></i> Example</div>
+            </div>
+        </div>
+        <div class="menu-item" onmousedown="event.preventDefault(); window.insertTemplate('[[  ]]', 3)"><i class="ti ti-link"></i> Insert Wikilink</div>
+        <div class="menu-item" onmousedown="event.preventDefault(); window.insertTemplate('[ ]()', 3)"><i class="ti ti-external-link"></i> Insert Link</div>
+        <div class="menu-item" onmousedown="event.preventDefault(); window.insertTemplate('| Column 1 | Column 2 |\\n| -------- | -------- |\\n| Text     | Text     |\\n')"><i class="ti ti-table"></i> Insert Table</div>
+        <div class="menu-item" onmousedown="event.preventDefault(); window.insertTemplate('```\\n\\n```', 4)"><i class="ti ti-code"></i> Insert Code Block</div>
+        <div class="menu-item" onmousedown="event.preventDefault(); window.insertTemplate('- [ ] ')"><i class="ti ti-checkbox"></i> Insert Task List</div>
+    </div>
     {sidebar_html}
     <div class="content-wrapper">
         <div class="toolbar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-color);">
@@ -819,6 +948,67 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None, raw_te
     </div>
     
     <script type="text/plain" id="raw-markdown">{raw_text.replace("</script>", "<\\/script>")}</script>
+    
+    <script>
+        document.addEventListener('mousedown', function(e) {{
+            const menu = document.getElementById('editor-context-menu');
+            if (menu && menu.style.display === 'flex' && !menu.contains(e.target)) {{
+                menu.style.display = 'none';
+            }}
+        }});
+        
+        window.insertTemplate = function(text, cursorBackOffset = 0) {{
+            if (!window.cmEditor) return;
+            const cm = window.cmEditor;
+            const doc = cm.getDoc();
+            const cursor = doc.getCursor();
+            doc.replaceRange(text, cursor);
+            
+            if (cursorBackOffset > 0) {{
+                const index = doc.indexFromPos(doc.getCursor());
+                doc.setCursor(doc.posFromIndex(index - cursorBackOffset));
+            }}
+            
+            cm.focus();
+            const menu = document.getElementById('editor-context-menu');
+            if (menu) menu.style.display = 'none';
+        }};
+
+        window.toggleCMFormat = function(prefix, suffix) {{
+            if (!window.cmEditor) return;
+            if (!suffix) suffix = prefix;
+            
+            const cm = window.cmEditor;
+            const from = cm.getCursor("start");
+            const to = cm.getCursor("end");
+            const selection = cm.getSelection();
+            
+            if (selection.length > 0 && selection.startsWith(prefix) && selection.endsWith(suffix)) {{
+                const newText = selection.slice(prefix.length, selection.length - suffix.length);
+                cm.replaceSelection(newText, "around");
+                cm.focus();
+                return;
+            }}
+            
+            const before = cm.getRange({{line: from.line, ch: from.ch - prefix.length}}, from);
+            const after = cm.getRange(to, {{line: to.line, ch: to.ch + suffix.length}});
+            
+            if (before === prefix && after === suffix) {{
+                cm.replaceRange("", to, {{line: to.line, ch: to.ch + suffix.length}});
+                cm.replaceRange("", {{line: from.line, ch: from.ch - prefix.length}}, from);
+                cm.focus();
+                return;
+            }}
+            
+            if (selection.length > 0) {{
+                cm.replaceSelection(prefix + selection + suffix, "around");
+            }} else {{
+                cm.replaceSelection(prefix + suffix);
+                cm.setCursor({{line: from.line, ch: from.ch + prefix.length}});
+            }}
+            cm.focus();
+        }};
+    </script>
     
     <!-- Sidebar Toggle Script -->
     <script>
@@ -904,18 +1094,26 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None, raw_te
     <script>
         (function() {{
             let socketUrl = "ws://" + window.location.host + "/ws";
-            let socket = new WebSocket(socketUrl);
-            socket.onmessage = function(event) {{
-                if (event.data === "reload") {{
-                    window.location.reload();
-                }}
-            }};
-            socket.onclose = function() {{
-                console.log("WebSocket connection closed. Reconnecting...");
-                setTimeout(function() {{
-                    window.location.reload();
-                }}, 2000);
-            }};
+            let socket;
+            
+            function connect() {{
+                socket = new WebSocket(socketUrl);
+                socket.onmessage = function(event) {{
+                    if (event.data === "reload") {{
+                        if (window.isSaving) return;
+                        if (window.isDirty) {{
+                            console.log("External modification detected, but local changes exist. Ignoring auto-reload.");
+                            return;
+                        }}
+                        window.location.reload();
+                    }}
+                }};
+                socket.onclose = function() {{
+                    console.log("WebSocket connection closed. Reconnecting in 2s...");
+                    setTimeout(connect, 2000);
+                }};
+            }}
+            connect();
         }})();
     </script>
 
@@ -1153,16 +1351,104 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None, raw_te
                                   ? 'material-ocean' : 'default',
                             lineNumbers: true,
                             lineWrapping: true,
-                            extraKeys: {{"Enter": "newlineAndIndentContinueMarkdownList"}}
+                            extraKeys: {{
+                                "Enter": "newlineAndIndentContinueMarkdownList",
+                                "Ctrl-B": (cm) => window.toggleCMFormat("**"),
+                                "Cmd-B": (cm) => window.toggleCMFormat("**"),
+                                "Ctrl-I": (cm) => window.toggleCMFormat("*"),
+                                "Cmd-I": (cm) => window.toggleCMFormat("*"),
+                                "Ctrl-E": (cm) => window.toggleCMFormat("`"),
+                                "Cmd-E": (cm) => window.toggleCMFormat("`"),
+                                "Ctrl-Shift-X": (cm) => window.toggleCMFormat("~~"),
+                                "Cmd-Shift-X": (cm) => window.toggleCMFormat("~~")
+                            }}
                         }});
+                        window.cmEditor = cmEditor;
                         cmEditor.setValue(rawText);
                         
                         cmEditor.on('change', () => {{
                             isDirty = true;
+                            window.isDirty = true;
+                            const btnSave = document.getElementById('btn-save');
+                            if (btnSave) btnSave.disabled = false;
                             clearTimeout(debounceTimer);
                             debounceTimer = setTimeout(() => {{
                                 updatePreview(cmEditor.getValue());
                             }}, 300);
+                        }});
+                        
+                        cmEditor.on("cursorActivity", (cm) => {{
+                            const toolbar = document.getElementById("floating-toolbar");
+                            if (!toolbar) return;
+                            
+                            if (cm.somethingSelected()) {{
+                                const from = cm.getCursor("start");
+                                const coords = cm.cursorCoords(from, "page");
+                                toolbar.style.display = "flex";
+                                const toolbarRect = toolbar.getBoundingClientRect();
+                                
+                                let top = coords.top - toolbarRect.height - 10;
+                                let left = coords.left - (toolbarRect.width / 2) + 10;
+                                
+                                if (left < 10) left = 10;
+                                if (left + toolbarRect.width > window.innerWidth) left = window.innerWidth - toolbarRect.width - 10;
+                                if (top < window.scrollY) top = coords.bottom + 10;
+                                
+                                toolbar.style.top = top + "px";
+                                toolbar.style.left = left + "px";
+                            }} else {{
+                                toolbar.style.display = "none";
+                            }}
+                        }});
+
+                        cmEditor.getWrapperElement().addEventListener('contextmenu', function(e) {{
+                            if (cmEditor.somethingSelected()) {{
+                                return; // default context menu
+                            }}
+                            e.preventDefault();
+                            
+                            const coords = cmEditor.coordsChar({{left: e.clientX, top: e.clientY}}, "window");
+                            cmEditor.setCursor(coords);
+                            
+                            const menu = document.getElementById("editor-context-menu");
+                            if (!menu) return;
+                            
+                            menu.style.display = "flex";
+                            const menuRect = menu.getBoundingClientRect();
+                            let top = e.clientY;
+                            let left = e.clientX;
+                            
+                            if (top + menuRect.height > window.innerHeight) {{
+                                top = window.innerHeight - menuRect.height - 10;
+                            }}
+                            if (left + menuRect.width > window.innerWidth) {{
+                                left = window.innerWidth - menuRect.width - 10;
+                            }}
+                            
+                            if (left > window.innerWidth / 2) {{
+                                menu.classList.add('menu-left');
+                            }} else {{
+                                menu.classList.remove('menu-left');
+                            }}
+                            
+                            menu.style.top = top + window.scrollY + "px";
+                            menu.style.left = left + window.scrollX + "px";
+                            
+                            const hasSubmenu = menu.querySelector('.has-submenu');
+                            const submenu = menu.querySelector('.submenu');
+                            if (hasSubmenu && submenu) {{
+                                submenu.style.display = 'flex';
+                                submenu.style.visibility = 'hidden';
+                                const subRect = submenu.getBoundingClientRect();
+                                submenu.style.display = '';
+                                submenu.style.visibility = '';
+                                
+                                if (subRect.bottom > window.innerHeight) {{
+                                    hasSubmenu.classList.add('submenu-up');
+                                }} else {{
+                                    hasSubmenu.classList.remove('submenu-up');
+                                }}
+                            }}
                         }});
 
                         // Interpolated Source Map Scroll Sync
@@ -1279,6 +1565,7 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None, raw_te
                     btnSave.style.display = 'none';
                     btnCancel.style.display = 'none';
                     isDirty = false;
+                    window.isDirty = false;
                     if (cmEditor) cmEditor.setValue(document.getElementById('raw-markdown').textContent);
                 }});
             }}
@@ -1287,6 +1574,7 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None, raw_te
                 btnSave.addEventListener('click', async () => {{
                     if (!cmEditor) return;
                     const content = cmEditor.getValue();
+                    window.isSaving = true;
                     const res = await fetch('/api/save', {{
                         method: 'POST',
                         headers: {{ 'Content-Type': 'application/json' }},
@@ -1295,8 +1583,25 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None, raw_te
                     const data = await res.json();
                     if (data.success) {{
                         isDirty = false;
-                        window.location.reload();
+                        window.isDirty = false;
+                        
+                        const originalHTML = btnSave.innerHTML;
+                        btnSave.innerHTML = '<i class="ti ti-check"></i> Saved!';
+                        btnSave.style.backgroundColor = 'var(--success-color, #28a745)';
+                        btnSave.style.color = '#fff';
+                        btnSave.disabled = true;
+                        
+                        const rawTag = document.getElementById('raw-markdown');
+                        if (rawTag) rawTag.textContent = content;
+                        
+                        setTimeout(() => {{
+                            btnSave.innerHTML = originalHTML;
+                            btnSave.style.backgroundColor = '';
+                            btnSave.style.color = '';
+                            window.isSaving = false;
+                        }}, 1500);
                     }} else {{
+                        window.isSaving = false;
                         alert("Error saving file: " + (data.error || "Unknown"));
                     }}
                 }});
