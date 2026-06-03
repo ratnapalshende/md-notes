@@ -154,9 +154,16 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None, raw_te
     
     <!-- CodeMirror -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-ocean.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/mode/overlay.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/gfm/gfm.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/continuelist.min.js"></script>
     
     <!-- Highlighter Themes -->
@@ -611,6 +618,50 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None, raw_te
             backdrop-filter: blur(2px);
             z-index: 1040;
         }}
+
+        /* VS Code Dark+ Theme for CodeMirror */
+        .cm-s-vscode-dark.CodeMirror {{ background: var(--bg-primary); color: #d4d4d4; font-family: var(--font-mono); }}
+        .cm-s-vscode-dark div.CodeMirror-selected {{ background: #264f78; }}
+        .cm-s-vscode-dark .CodeMirror-line::selection, .cm-s-vscode-dark .CodeMirror-line > span::selection, .cm-s-vscode-dark .CodeMirror-line > span > span::selection {{ background: #264f78; }}
+        .cm-s-vscode-dark .CodeMirror-line::-moz-selection, .cm-s-vscode-dark .CodeMirror-line > span::-moz-selection, .cm-s-vscode-dark .CodeMirror-line > span > span::-moz-selection {{ background: #264f78; }}
+        .cm-s-vscode-dark .CodeMirror-gutters {{ background: var(--bg-primary); border-right: 1px solid var(--border-color); }}
+        .cm-s-vscode-dark .CodeMirror-guttermarker {{ color: #5a5a5a; }}
+        .cm-s-vscode-dark .CodeMirror-guttermarker-subtle {{ color: #5a5a5a; }}
+        .cm-s-vscode-dark .CodeMirror-linenumber {{ color: #858585; }}
+        .cm-s-vscode-dark .CodeMirror-cursor {{ border-left: 1px solid #d4d4d4; }}
+        
+        /* Markdown / Syntax specific */
+        .cm-s-vscode-dark .cm-header {{ color: #569cd6; font-weight: bold; }}
+        .cm-s-vscode-dark .cm-quote {{ color: #608b4e; font-style: italic; }}
+        .cm-s-vscode-dark .cm-keyword {{ color: #c586c0; }}
+        .cm-s-vscode-dark .cm-atom {{ color: #569cd6; }}
+        .cm-s-vscode-dark .cm-number {{ color: #b5cea8; }}
+        .cm-s-vscode-dark .cm-def {{ color: #dcdcaa; }}
+        .cm-s-vscode-dark .cm-variable {{ color: #9cdcfe; }}
+        .cm-s-vscode-dark .cm-property {{ color: #9cdcfe; }}
+        .cm-s-vscode-dark .cm-operator {{ color: #d4d4d4; }}
+        .cm-s-vscode-dark .cm-string {{ color: #ce9178; }}
+        .cm-s-vscode-dark .cm-string-2 {{ color: #ce9178; }}
+        .cm-s-vscode-dark .cm-meta {{ color: #569cd6; }}
+        .cm-s-vscode-dark .cm-error {{ color: #f44747; }}
+        .cm-s-vscode-dark .cm-qualifier {{ color: #d7ba7d; }}
+        .cm-s-vscode-dark .cm-builtin {{ color: #4ec9b0; }}
+        .cm-s-vscode-dark .cm-bracket {{ color: #d4d4d4; }}
+        .cm-s-vscode-dark .cm-tag {{ color: #569cd6; }}
+        .cm-s-vscode-dark .cm-attribute {{ color: #9cdcfe; }}
+        .cm-s-vscode-dark .cm-link {{ color: #3794ff; text-decoration: underline; }}
+        .cm-s-vscode-dark .cm-url {{ color: #3794ff; text-decoration: underline; }}
+        .cm-s-vscode-dark .cm-comment {{ color: #608b4e; font-style: italic; }}
+        .cm-s-vscode-dark .cm-formatting-list-ul {{ color: #d7ba7d; font-weight: bold; }}
+        .cm-s-vscode-dark .cm-formatting-list-ol {{ color: #d7ba7d; font-weight: bold; }}
+        .cm-s-vscode-dark .cm-formatting-code {{ color: #569cd6; font-weight: bold; }}
+        .cm-s-vscode-dark .cm-formatting-header {{ color: #569cd6; font-weight: bold; }}
+        .cm-s-vscode-dark .cm-formatting-strong {{ color: #569cd6; font-weight: bold; }}
+        .cm-s-vscode-dark .cm-formatting-em {{ color: #c586c0; font-weight: bold; }}
+        .cm-s-vscode-dark .cm-formatting-strikethrough {{ color: #858585; text-decoration: line-through; }}
+        .cm-s-vscode-dark .cm-strikethrough {{ color: #858585; text-decoration: line-through; }}
+        .cm-s-vscode-dark .cm-strong {{ font-weight: bold; color: #d4d4d4; }}
+        .cm-s-vscode-dark .cm-em {{ font-style: italic; color: #d4d4d4; }}
 
         /* Content Area */
         .content-wrapper {{
@@ -1345,10 +1396,10 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None, raw_te
                     if (!cmEditor) {{
                         const rawText = document.getElementById('raw-markdown').textContent;
                         cmEditor = CodeMirror.fromTextArea(document.getElementById('markdown-editor'), {{
-                            mode: 'markdown',
+                            mode: 'gfm',
                             theme: document.documentElement.getAttribute('data-theme') === 'dark' || 
                                   (!document.documentElement.getAttribute('data-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)
-                                  ? 'material-ocean' : 'default',
+                                  ? 'vscode-dark' : 'default',
                             lineNumbers: true,
                             lineWrapping: true,
                             extraKeys: {{
@@ -1635,7 +1686,7 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None, raw_te
                 if (cmEditor) {{
                     const isDark = document.documentElement.getAttribute('data-theme') === 'dark' || 
                                   (!document.documentElement.getAttribute('data-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
-                    cmEditor.setOption('theme', isDark ? 'material-ocean' : 'default');
+                    cmEditor.setOption('theme', isDark ? 'vscode-dark' : 'default');
                 }}
             }});
             
@@ -1643,7 +1694,7 @@ def wrap_in_template(body: str, title: str, nav: list[str] | None = None, raw_te
                 if (cmEditor) {{
                     setTimeout(() => {{
                         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-                        cmEditor.setOption('theme', isDark ? 'material-ocean' : 'default');
+                        cmEditor.setOption('theme', isDark ? 'vscode-dark' : 'default');
                     }}, 10);
                 }}
             }});
