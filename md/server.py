@@ -146,10 +146,10 @@ async def run_server(path: str, port: int):
     # Runner setup
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, "localhost", port)
+    site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
 
-    print(f"Server started on http://localhost:{port}")
+    print(f"Server started on http://0.0.0.0:{port}")
 
     # Graceful shutdown on Ctrl+C
     loop = asyncio.get_running_loop()
